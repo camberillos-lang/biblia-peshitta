@@ -4,7 +4,7 @@ import {keyOf} from './personal.mjs';
 import {choosePassage,dayVerse,notifiedAnchor} from './azar.mjs';
 
 const LIMIT = 60;
-const handler = () => globalThis.webkit?.messageHandlers?.peshitta;
+const handler = () => globalThis.peshittaAndroid || globalThis.webkit?.messageHandlers?.peshitta;
 export const enIPhoneNativo = () => Boolean(handler()?.postMessage);
 export const llamada = (accion, datos = {}) => handler().postMessage({accion,...datos});
 let tarea = Promise.resolve();
@@ -68,7 +68,7 @@ async function programar(A,p,estricto,forzar) {
 }
 export function activarIPhone(A,p) {
   return ordenada(async()=>{
-    if(!(await llamada('permiso')))throw Error('Activa las notificaciones de Biblia Peshitta en Configuración del iPhone.');
+    if(!(await llamada('permiso')))throw Error('Activa las notificaciones de Biblia Peshitta en los ajustes de tu dispositivo.');
     return programar(A,p,true,true);
   });
 }
@@ -103,6 +103,7 @@ export async function alAbrirIPhone(A) {
   actualizarIPhone(A,true);
 }
 export function compartirArchivo(nombre,blob){
+  if (globalThis.peshittaAndroid && nombre === 'Biblia-Peshitta.pdf') return llamada('archivo',{nombre});
   return new Promise((resolve,reject)=>{
     const reader=new FileReader();
     reader.onerror=()=>reject(Error('No se pudo preparar el archivo.'));

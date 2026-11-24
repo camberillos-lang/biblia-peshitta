@@ -15,6 +15,13 @@ async function indiceIntegrado(archivo, huella) {
 }
 
 async function pdfIntegrado(fuente) {
+  if (document.documentElement.dataset.plataforma === 'android') {
+    const pdf = await (await recursoLocal('./edicion/original.pdf')).blob();
+    if (pdf.size !== fuente.originalBytes || await sha(pdf) !== fuente.sha256) {
+      throw Error('El PDF incluido no coincide con el documento original.');
+    }
+    return pdf;
+  }
   const respuesta = await recursoLocal('./edicion/pdf.json');
   const base64 = await respuesta.json();
   if (typeof base64 !== 'string' || base64.length !== 4 * Math.ceil(fuente.originalBytes / 3)) {

@@ -35,7 +35,7 @@ function readSchedule(form){
 }
 function notice(A,p) {
   const s=p.schedule,dev=A.push||{};
-  const entregaLocal=`<section class="config-block"><h3>Avisos en tu iPhone</h3><p class="status-text">${dev.enabled?'Avisos activados.':'Puedes recibir pasajes incluso sin conexión.'}</p>
+  const entregaLocal=`<section class="config-block"><h3>Avisos en este dispositivo</h3><p class="status-text">${dev.enabled?'Avisos activados.':'Puedes recibir pasajes incluso sin conexión.'}</p>
   ${dev.enabled&&dev.until?'<p>Programados hasta '+esc(new Date(dev.until).toLocaleString('es-MX'))+'. Al abrir la app se preparan los siguientes.</p>':''}
   <div class="line-actions">${dev.enabled?btn('Enviar prueba real','test-push','campana','btn soft')+btn('Desactivar','stop-push','','quiet'):btn('Activar avisos','start-push','campana','btn primary')}</div></section>`;
   const entregaWeb=`<section class="config-block"><h3>Entrega en este dispositivo</h3><p class="status-text">${!supportsPush()?'Abre la aplicación instalada en un navegador compatible con Web Push.':dev.enabled?'Avisos activados en este dispositivo.':dev.publicKey?'Servicio conectado. Falta activar el permiso de este dispositivo.':'Para recibir avisos con la app cerrada, conecta el servicio incluido en el paquete.'}</p>
