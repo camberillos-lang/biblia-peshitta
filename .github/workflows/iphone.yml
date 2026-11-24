@@ -1,0 +1,33 @@
+name: Compilar IPA para Sideloadly
+
+on:
+  push:
+    branches: [main]
+    paths: ['ios/**', 'docs/**', '.github/workflows/iphone.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  iphone:
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Compilar para iPhone
+        run: python3 ios/compilar.py
+
+      - name: Entregar el IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: Biblia-Peshitta-iPhone
+          path: salida/BibliaPeshitta-unsigned.ipa
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Verificar el arranque en un iPhone simulado
+        run: python3 ios/probar_simulador.py
