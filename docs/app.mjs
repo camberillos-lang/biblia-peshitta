@@ -1,7 +1,7 @@
 import {enIPhoneNativo,actualizarIPhone,alAbrirIPhone} from './iphone.mjs';
 import {read,change,databaseName} from './almacen.mjs';
 import {blank,keyOf} from './personal.mjs';
-import {importEdition} from './edicion.mjs';
+import {abrirEdicionIntegrada,importEdition} from './edicion.mjs';
 import {createFragments} from './fragmentos.mjs';
 import {createSearch} from './busqueda.mjs';
 import {dayVerse,choosePassage,previewText,today} from './azar.mjs';
@@ -156,7 +156,11 @@ async function original(parts){
   A.main.innerHTML=`<section class="page"><div class="page-heading"><div><p class="eyebrow">Edición íntegra</p><h1>Documento original</h1></div></div>
   <label class="pdf-index">Índice del documento<select id="pdf-sections"><option value="">Ir a una sección…</option>${sections}</select></label><div id="pdf-container" aria-live="polite"><p>Abriendo la página original…</p></div></section>`;
   const container=$('#pdf-container');
-  const [{mountFacsimile},pdf,pagesIndex]=await Promise.all([import('./facsimil/viewer.mjs'),read('edicion','pdf'),read('edicion','pages')]);
+  const [{mountFacsimile},pdf,pagesIndex]=await Promise.all([
+    import('./facsimil/viewer.mjs'),
+    A.integrada ? A.integrada.pdf() : read('edicion','pdf'),
+    A.integrada ? A.integrada.paginas() : read('edicion','pages'),
+  ]);
   if(!container.isConnected)return;
   if(!pdf)throw Error('Falta la copia local del PDF. Vuelve a importar tu edición.');
   const viewer=mountFacsimile(container,{pdf,page,pagesIndex,onPageChange:n=>{
@@ -219,7 +223,7 @@ document.addEventListener('keydown',e=>{
 });
 $('#panel').addEventListener('click',e=>{if(e.target===$('#panel')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)A.close();}});
 async function offline(){
-  if(enIPhoneNativo()){A.offline=true;const label=$('#offline-edition');if(label)label.textContent='Edición y aplicación listas sin conexión.';return;}
+  if(A.integrada||enIPhoneNativo()){A.offline=true;const label=$('#offline-edition');if(label)label.textContent='Edición y aplicación listas sin conexión.';return;}
   if(!('serviceWorker'in navigator)||!isSecureContext){A.offlineError=true;return;}
   const check=worker=>{if(!worker)return;const ch=new MessageChannel();ch.port1.onmessage=e=>{A.offline=!!e.data.ready;const el=$('#offline-edition');if(el&&A.offline)el.textContent='Edición y aplicación listas sin conexión.';ch.port1.close();};worker.postMessage('offline-status',[ch.port2]);};
   check(navigator.serviceWorker.controller);
@@ -233,9 +237,25 @@ async function offline(){
 navigator.serviceWorker?.addEventListener('message',e=>{if(e.data?.type==='abrir-aviso'&&/^#(aviso|pasaje|ajustes)\//.test(e.data.hash))A.go(e.data.hash.slice(1),true);});
 window.addEventListener('peshitta-activa',()=>alAbrirIPhone(A).catch(A.error));
 async function start(){
+  const incluida = document.documentElement.dataset.edicion === 'integrada';
+  let falloPersonal = false;
   try{
-    const [data,corpus,push]=await Promise.all([read('usuario','datos'),read('edicion','corpus'),pushState()]);
+    // El texto de la edición integrada es de solo lectura. Las notas siguen en la base personal.
+    const personal = Promise.all([read('usuario','datos'),pushState()]).catch(error=>{
+      if (!incluida) throw error;
+      falloPersonal = true;
+      return [null,{}];
+    });
+    const [[data,push],edicion] = await Promise.all([personal,
+      incluida ? abrirEdicionIntegrada() : read('edicion','corpus'),
+    ]);
+    A.integrada = incluida ? edicion : null;
+    const corpus = incluida ? edicion.corpus : edicion;
     A.data=data||blank();A.push=push;if(corpus)prepare(corpus);A.ready=true;draw();offline();alAbrirIPhone(A).catch(A.error);
-  }catch(err){A.main.innerHTML=`<section class="page empty"><h1>Almacenamiento no disponible</h1><p>Abre Biblia Peshitta en una ventana normal y comprueba el espacio disponible.</p><p>${esc(err.message)}</p></section>`;}
+    if (falloPersonal) toast('Puedes leer. El almacenamiento de notas y ajustes no está disponible.');
+  }catch(err){
+    A.main.innerHTML=`<section class="page empty"><h1>${incluida?'No se pudo abrir la edición incluida':'Almacenamiento no disponible'}</h1><p>${esc(err.message)}</p><button type="button" class="btn primary" id="reintentar-inicio">Volver a intentar</button></section>`;
+    $('#reintentar-inicio').onclick=()=>location.reload();
+  }
 }
 start();

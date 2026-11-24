@@ -24,8 +24,11 @@ export async function read(store, key) {
     const request = database.transaction(store).objectStore(store).get(key);
     request.onsuccess = () => {
       const result=request.result;
-      if(store==='edicion' && (key==='corpus'||key==='pages') && result instanceof Blob) {
-        result.text().then(text=>JSON.parse(text)).then(resolve,reject);
+      if(store==='edicion' && (key==='corpus'||key==='pages') && (result instanceof Blob||result instanceof ArrayBuffer)) {
+        const contenido=result instanceof Blob ? result.text() : Promise.resolve(new TextDecoder().decode(result));
+        contenido.then(text=>JSON.parse(text)).then(resolve,reject);
+      } else if(store==='edicion' && key==='pdf' && result instanceof ArrayBuffer) {
+        resolve(new Blob([result],{type:'application/pdf'}));
       } else resolve(result);
     };
     request.onerror = () => reject(request.error);

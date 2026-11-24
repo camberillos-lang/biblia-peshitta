@@ -54,12 +54,21 @@ def empaquetar(app):
         assert "Payload/BibliaPeshitta.app/docs/index.html" in z.namelist()
     temporal.replace(ipa)
     print("IPA para Sideloadly:", ipa)
+    return ipa
 
 
 if __name__ == "__main__":
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--simulador",action="store_true")
+    modo=p.add_mutually_exclusive_group()
+    modo.add_argument("--simulador",action="store_true")
+    modo.add_argument("--edicion",type=Path,metavar="ARCHIVO",help="Integra la edición personal en un IPA adicional para iPhone.")
     args=p.parse_args()
     app=construir(args.simulador)
-    if not args.simulador: empaquetar(app)
+    if not args.simulador:
+        base = empaquetar(app)
+        if args.edicion:
+            from integrar_edicion import integrar
+            destino = SALIDA / 'BibliaPeshitta-con-edicion.ipa'
+            integrar(base, args.edicion, destino)
+            print('IPA con la edición integrada:', destino)
 
