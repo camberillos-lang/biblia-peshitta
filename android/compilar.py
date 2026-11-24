@@ -31,6 +31,14 @@ def preparar(archivo, carpeta):
                 raise ValueError('La edición no coincide con el original.')
             (carpeta / 'edicion' / nombre).write_bytes(datos)
 
+    lectura = json.loads((carpeta / 'edicion/lectura.json').read_bytes())
+    indice = [
+        {'nombre': libro['name'], 'capitulos': [[c['n'], c['p']] for c in libro['chapters']]}
+        for libro in lectura['books']
+    ]
+    (carpeta / 'edicion/indice-android.json').write_text(
+        json.dumps(indice, ensure_ascii=False), encoding='utf-8')
+
     inicio = carpeta / 'index.html'
     texto = inicio.read_text(encoding='utf-8')
     original = '<html lang="es-MX">'

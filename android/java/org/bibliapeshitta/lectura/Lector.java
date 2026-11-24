@@ -2,7 +2,6 @@ package org.bibliapeshitta.lectura;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
@@ -14,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Base64;
 import android.view.WindowInsets;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebMessage;
@@ -43,7 +43,10 @@ public final class Lector extends Activity {
     private static final int PERMISO = 1, GUARDAR = 2, ELEGIR = 3;
     private static final int VERDE = Color.rgb(21, 62, 52);
     private final ExecutorService archivos = Executors.newSingleThreadExecutor();
+    private FrameLayout marco;
     private WebView web;
+    private VisorOriginal original;
+    private PackageInfo motor;
     private WebMessagePort puerto;
     private String ruta = "";
     private int permisoPedido, guardadoPedido;
@@ -54,7 +57,7 @@ public final class Lector extends Activity {
         super.onCreate(estado);
         getWindow().setStatusBarColor(VERDE);
         getWindow().setNavigationBarColor(VERDE);
-        FrameLayout marco = new FrameLayout(this);
+        marco = new FrameLayout(this);
         marco.setBackgroundColor(VERDE);
         if (Build.VERSION.SDK_INT >= 30) {
             getWindow().setDecorFitsSystemWindows(false);
@@ -65,20 +68,17 @@ public final class Lector extends Activity {
             });
         }
         setContentView(marco);
+        if (estado == null) recibirRuta(getIntent());
+        else ruta = estado.getString("pendiente", "");
         // La interfaz y sus módulos ES requieren una versión moderna de Android System WebView.
-        PackageInfo motor = WebView.getCurrentWebViewPackage();
-        if (motor == null || !compatible(motor.versionName)) {
-            new AlertDialog.Builder(this).setTitle("Actualiza Android System WebView")
-                .setMessage("Para abrir Biblia Peshitta, actualiza Android System WebView o Google Chrome en Google Play y vuelve a abrir la app.")
-                .setPositiveButton("Abrir Google Play", (d, n) -> {
-                    String app = motor != null ? motor.packageName : "com.google.android.webview";
-                    try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + app))); }
-                    catch (ActivityNotFoundException e) { Toast.makeText(this, "Actualiza el componente desde tu tienda de aplicaciones.", Toast.LENGTH_LONG).show(); }
-                    finish();
-                }).setNegativeButton("Cerrar", (d,n) -> finish()).setCancelable(false).show();
+        motor = WebView.getCurrentWebViewPackage();
+        if (motor == null || !compatible(motor.versionName)
+                || claveMotor().equals(getPreferences(MODE_PRIVATE).getString("motorConFallo", ""))) {
+            abrirOriginal();
             return;
         }
-        web = new WebView(this);
+        try { web = new WebView(this); }
+        catch (RuntimeException error) { abrirOriginal(); return; }
         marco.addView(web, new FrameLayout.LayoutParams(-1,-1));
         WebSettings ajustes = web.getSettings();
         ajustes.setJavaScriptEnabled(true);
@@ -98,10 +98,40 @@ public final class Lector extends Activity {
                 return true;
             }
         });
-        if (estado == null) recibirRuta(getIntent());
-        else ruta = estado.getString("pendiente", "");
         String ultimo = estado == null ? null : estado.getString("pagina");
         web.loadUrl(ultimo != null && paginaPropia(Uri.parse(ultimo)) ? ultimo : INICIO);
+    }
+
+    private String claveMotor() {
+        return motor == null ? "ausente" : motor.packageName + "/" + motor.versionName;
+    }
+    private void abrirOriginal() {
+        if (isFinishing() || isDestroyed() || original != null) return;
+        getPreferences(MODE_PRIVATE).edit().putString("motorConFallo", claveMotor()).apply();
+        if (puerto != null) {
+            try { puerto.close(); } catch (IllegalStateException ignored) { }
+            puerto = null;
+        }
+        if (web != null) {
+            WebView anterior = web;
+            web = null;
+            marco.removeView(anterior);
+            anterior.destroy();
+        }
+        original = new VisorOriginal(this, this::reintentarCompleto);
+        marco.addView(original, new FrameLayout.LayoutParams(-1, -1));
+    }
+    private void reintentarCompleto() {
+        if (motor == null || !compatible(motor.versionName)) {
+            String app = motor == null ? "com.google.android.webview" : motor.packageName;
+            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + app))); }
+            catch (ActivityNotFoundException e) {
+                Toast.makeText(this, "Actualiza Android System WebView desde tu tienda de aplicaciones.", Toast.LENGTH_LONG).show();
+            }
+        } else {
+            getPreferences(MODE_PRIVATE).edit().remove("motorConFallo").apply();
+            recreate();
+        }
     }
 
     private static boolean compatible(String version) {
@@ -148,7 +178,7 @@ public final class Lector extends Activity {
             if (puerto != null) { puerto.close(); puerto = null; }
         }
         @Override public void onPageFinished(WebView vista, String u) {
-            if (!paginaPropia(Uri.parse(u)) || puerto != null) return;
+            if (vista != web || !paginaPropia(Uri.parse(u)) || puerto != null) return;
             WebMessagePort[] par = vista.createWebMessageChannel();
             puerto = par[0];
             puerto.setWebMessageCallback(new WebMessagePort.WebMessageCallback() {
@@ -159,10 +189,11 @@ public final class Lector extends Activity {
             vista.postWebMessage(new WebMessage("peshitta-puerto", new WebMessagePort[]{par[1]}), ORIGEN);
         }
         @Override public void onReceivedError(WebView vista, WebResourceRequest peticion, WebResourceError error) {
-            if (peticion.isForMainFrame() && !isFinishing()) {
-                new AlertDialog.Builder(Lector.this).setTitle("No se pudo abrir el lector")
-                    .setPositiveButton("Volver a intentar", (d,n) -> vista.loadUrl(INICIO)).show();
-            }
+            if (peticion.isForMainFrame() && vista == web) vista.post(() -> { if (vista == web) abrirOriginal(); });
+        }
+        @Override public boolean onRenderProcessGone(WebView vista, RenderProcessGoneDetail detalle) {
+            if (vista == web) abrirOriginal();
+            return true;
         }
     }
 
@@ -266,6 +297,7 @@ public final class Lector extends Activity {
         if(web!=null)estado.putString("pagina",web.getUrl());
     }
     @Override protected void onDestroy() {
+        if(original!=null)original.cerrar();
         if(puerto!=null){puerto.close();puerto=null;}
         if(elegir!=null){elegir.onReceiveValue(null);elegir=null;}
         if(web!=null){((FrameLayout)web.getParent()).removeView(web);web.destroy();}
