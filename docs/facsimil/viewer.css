@@ -1,0 +1,135 @@
+.bp-facsimil {
+  --fx-edge: color-mix(in srgb, currentColor 23%, transparent);
+  --fx-muted-edge: color-mix(in srgb, currentColor 12%, transparent);
+  --fx-tint: color-mix(in srgb, currentColor 6%, transparent);
+  color: inherit;
+  font: inherit;
+  min-width: 0;
+}
+.bp-facsimil [hidden] { display: none !important; }
+.bp-facsimil * { box-sizing: border-box; }
+.bp-facsimil button, .bp-facsimil input, .bp-facsimil select, .bp-facsimil .fx-link {
+  background: transparent;
+  border: 1px solid var(--fx-edge);
+  border-radius: .55rem;
+  color: inherit;
+  font: inherit;
+  font-size: .9375rem;
+  line-height: 1.25;
+  min-height: 44px;
+  padding: .5rem .7rem;
+}
+.bp-facsimil button, .bp-facsimil summary, .bp-facsimil .fx-link { cursor: pointer; }
+.bp-facsimil button:hover, .bp-facsimil a:hover { background-color: var(--fx-tint); }
+.bp-facsimil :focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.bp-facsimil :disabled { cursor: default; opacity: .45; }
+.bp-facsimil .fx-controls, .bp-facsimil .fx-jump, .bp-facsimil .fx-search-form, .bp-facsimil .fx-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
+}
+.bp-facsimil .fx-controls { margin-bottom: .45rem; justify-content: space-between; }
+.bp-facsimil .fx-jump { margin: 0; }
+.bp-facsimil .fx-jump label { white-space: nowrap; font-size: .875rem; }
+.bp-facsimil .fx-jump input { width: 5.25rem; min-width: 0; }
+.bp-facsimil .fx-paging { display: flex; gap: .3rem; }
+.bp-facsimil .fx-paging button { min-width: 44px; font-size: 1.4rem; padding: .2rem; }
+.bp-facsimil .fx-search, .bp-facsimil .fx-transcription { border-bottom: 1px solid var(--fx-muted-edge); }
+.bp-facsimil .fx-search { border-top: 1px solid var(--fx-muted-edge); margin: .5rem 0 .8rem; }
+.bp-facsimil summary { font-size: .9375rem; min-height: 44px; padding: .7rem .1rem; }
+.bp-facsimil .fx-search-form { margin: .25rem 0 .5rem; }
+.bp-facsimil .fx-search-form input { flex: 1 1 11rem; min-width: 0; }
+.bp-facsimil p.fx-meta, .bp-facsimil p.fx-progress { font-size: .875rem; line-height: 1.45; margin: .35rem 0 .6rem; }
+.bp-facsimil .fx-progress:empty { display: none; }
+.bp-facsimil .fx-results { max-height: 19rem; overflow: auto; }
+.bp-facsimil .fx-result {
+  display: block;
+  text-align: start;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  border-top: 1px solid var(--fx-muted-edge);
+  line-height: 1.5;
+  padding: .65rem .15rem;
+}
+.bp-facsimil .fx-result strong { display: block; font-size: .8125rem; }
+.bp-facsimil .fx-more { margin: .4rem 0; }
+.bp-facsimil mark { background: #f3db8d; color: #242918; border-radius: .18rem; }
+.bp-facsimil .fx-stage {
+  background-color: var(--fx-tint);
+  border: 1px solid var(--fx-muted-edge);
+  border-radius: .5rem;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.bp-facsimil .fx-paper {
+  background-color: white;
+  box-sizing: content-box;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.bp-facsimil .fx-paper canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  margin: 0;
+}
+.bp-facsimil .fx-text {
+  position: absolute;
+  text-align: initial;
+  inset: 0;
+  overflow: hidden;
+  color-scheme: only light;
+  line-height: 1;
+  -webkit-text-size-adjust: none;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  z-index: 2;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+.bp-facsimil .fx-text :is(span, br) {
+  color: transparent !important;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0 0;
+}
+.bp-facsimil .fx-text > :not(.markedContent), .bp-facsimil .fx-text .markedContent span:not(.markedContent) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+.bp-facsimil .fx-text .markedContent { display: contents; }
+.bp-facsimil .fx-text ::selection { background-color: rgb(30 130 213 / 37%); }
+.bp-facsimil .fx-overlay { position: absolute; pointer-events: none; inset: 0; z-index: 3; }
+.bp-facsimil .fx-overlay a { position: absolute; pointer-events: auto; background: transparent; }
+.bp-facsimil .fx-overlay a:hover, .bp-facsimil .fx-overlay a:focus-visible { outline: 2px solid #40796a; }
+.bp-facsimil .fx-hit { position: absolute; background: rgb(242 187 55 / 43%); }
+.bp-facsimil .fx-transcription pre {
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 28rem;
+  overflow: auto;
+  margin: 0 0 .75rem;
+}
+.bp-facsimil .fx-footer { padding-top: .65rem; }
+.bp-facsimil .fx-link { display: inline-flex; align-items: center; text-decoration: none; }
+@media (max-width: 28rem) {
+  .bp-facsimil .fx-controls { gap: .35rem; }
+  .bp-facsimil .fx-zoom { max-width: 6rem; }
+}
